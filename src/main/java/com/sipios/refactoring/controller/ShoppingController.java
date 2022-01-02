@@ -17,12 +17,16 @@ public class ShoppingController {
 
     @PostMapping
     public String getPrice(@RequestBody Body body) {
+        Date today = new Date();
+        return calculatePrice(body, today);
+    }
+
+    public String calculatePrice(Body body, Date today) {
+        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("Europe/Paris"));
+        calendar.setTime(today);
+
         double price = 0;
         double discount;
-
-        Date date = new Date();
-        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("Europe/Paris"));
-        calendar.setTime(date);
 
         // Compute discount for customer
         if (body.getType().equals("STANDARD_CUSTOMER")) {
