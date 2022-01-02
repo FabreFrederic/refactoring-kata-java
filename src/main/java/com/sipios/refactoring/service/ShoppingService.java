@@ -15,92 +15,97 @@ import java.util.TimeZone;
 public class ShoppingService {
 
     public String calculatePrice(Body body, Date today) {
+        double price = 0;
+        double discount = computeDiscountForCustomer(body.getShopperType());
+
+        if (body.getItems() == null) {
+            return "0";
+        }
+        for (int i = 0; i < body.getItems().length; i++) {
+            Item item = body.getItems()[i];
+
+            switch (item.getType()) {
+                case "TSHIRT":
+                    price += 30 * item.getQuantity() * discount;
+                    break;
+                case "DRESS":
+                    price += 50 * item.getQuantity() * computeDiscountForPeriod(today, item) * discount;
+                    break;
+                case "JACKET":
+                    price += 100 * item.getQuantity() * computeDiscountForPeriod(today, item) * discount;
+                    break;
+                default:
+                    price = 0.0;
+            }
+        }
+        checkPrice(body, price);
+
+        return String.valueOf(price);
+    }
+
+    private boolean isDiscountsPeriods(Date today) {
         Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("Europe/Paris"));
         calendar.setTime(today);
 
-        double price = 0;
-        double discount;
+        return (
+            calendar.get(Calendar.DAY_OF_MONTH) < 15 &&
+                calendar.get(Calendar.DAY_OF_MONTH) > 5 &&
+                calendar.get(Calendar.MONTH) == Calendar.JUNE
+        ) ||
+            (
+                calendar.get(Calendar.DAY_OF_MONTH) < 15 &&
+                    calendar.get(Calendar.DAY_OF_MONTH) > 5 &&
+                    calendar.get(Calendar.MONTH) == Calendar.JANUARY
+            );
+    }
 
-        // Compute discount for customer
-        if (body.getType().equals(ShopperType.STANDARD_CUSTOMER.toString())) {
+    private double computeDiscountForPeriod(Date date, Item item) {
+        double periodDiscount = 1;
+        if (isDiscountsPeriods(date)) {
+            if (item.getType().equals("DRESS")) {
+                periodDiscount = 0.8;
+            } else if (item.getType().equals("JACKET")) {
+                periodDiscount = 0.9;
+            }
+        }
+        return periodDiscount;
+    }
+
+    private double computeDiscountForCustomer(String shopperType) {
+        double discount;
+        if (ShopperType.STANDARD_CUSTOMER.toString().equals(shopperType)) {
             discount = 1;
-        } else if (body.getType().equals(ShopperType.PREMIUM_CUSTOMER.toString())) {
+        } else if (ShopperType.PREMIUM_CUSTOMER.toString().equals(shopperType)) {
             discount = 0.9;
-        } else if (body.getType().equals(ShopperType.PLATINUM_CUSTOMER.toString())) {
+        } else if (ShopperType.PLATINUM_CUSTOMER.toString().equals(shopperType)) {
             discount = 0.5;
         } else {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }
+        return discount;
+    }
 
-        // Compute total amount depending on the types and quantity of product and
-        // if we are in winter or summer discounts periods
-        if (
-            !(
-                calendar.get(Calendar.DAY_OF_MONTH) < 15 &&
-                    calendar.get(Calendar.DAY_OF_MONTH) > 5 &&
-                    calendar.get(Calendar.MONTH) == 5
-            ) &&
-                !(
-                    calendar.get(Calendar.DAY_OF_MONTH) < 15 &&
-                        calendar.get(Calendar.DAY_OF_MONTH) > 5 &&
-                        calendar.get(Calendar.MONTH) == 0
-                )
-        ) {
-            if (body.getItems() == null) {
-                return "0";
+    private void checkPrice(Body body, double price) {
+        if (body.getShopperType().equals(ShopperType.STANDARD_CUSTOMER.toString())) {
+            if (price > 200) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Price (" + price + ") is too high for " + ShopperType.STANDARD_CUSTOMER.getLabel());
             }
-
-            for (int i = 0; i < body.getItems().length; i++) {
-                Item item = body.getItems()[i];
-
-                if (item.getType().equals("TSHIRT")) {
-                    price += 30 * item.getQuantity() * discount;
-                } else if (item.getType().equals("DRESS")) {
-                    price += 50 * item.getQuantity() * discount;
-                } else if (item.getType().equals("JACKET")) {
-                    price += 100 * item.getQuantity() * discount;
-                }
+        } else if (body.getShopperType().equals(ShopperType.PREMIUM_CUSTOMER.toString())) {
+            if (price > 800) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Price (" + price + ") is too high for " + ShopperType.PREMIUM_CUSTOMER.getLabel());
+            }
+        } else if (body.getShopperType().equals(ShopperType.PLATINUM_CUSTOMER.toString())) {
+            if (price > 2000) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Price (" + price + ") is too high for " + ShopperType.PLATINUM_CUSTOMER.getLabel());
             }
         } else {
-            if (body.getItems() == null) {
-                return "0";
-            }
-
-            for (int i = 0; i < body.getItems().length; i++) {
-                Item item = body.getItems()[i];
-
-                if (item.getType().equals("TSHIRT")) {
-                    price += 30 * item.getQuantity() * discount;
-                } else if (item.getType().equals("DRESS")) {
-                    price += 50 * item.getQuantity() * 0.8 * discount;
-                } else if (item.getType().equals("JACKET")) {
-                    price += 100 * item.getQuantity() * 0.9 * discount;
-                }
+            if (price > 200) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Price (" + price + ") is too high for standard customer");
             }
         }
-
-        try {
-            if (body.getType().equals(ShopperType.STANDARD_CUSTOMER.toString())) {
-                if (price > 200) {
-                    throw new Exception("Price (" + price + ") is too high for " + ShopperType.STANDARD_CUSTOMER.getLabel());
-                }
-            } else if (body.getType().equals(ShopperType.PREMIUM_CUSTOMER.toString())) {
-                if (price > 800) {
-                    throw new Exception("Price (" + price + ") is too high for " + ShopperType.PREMIUM_CUSTOMER.getLabel());
-                }
-            } else if (body.getType().equals(ShopperType.PLATINUM_CUSTOMER.toString())) {
-                if (price > 2000) {
-                    throw new Exception("Price (" + price + ") is too high for " + ShopperType.PLATINUM_CUSTOMER.getLabel());
-                }
-            } else {
-                if (price > 200) {
-                    throw new Exception("Price (" + price + ") is too high for standard customer");
-                }
-            }
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
-        }
-
-        return String.valueOf(price);
     }
 }

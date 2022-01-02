@@ -3,11 +3,11 @@ package com.sipios.refactoring.domain;
 public class Body {
 
     private Item[] items;
-    private String type;
+    private String shopperType;
 
     public Body(Item[] items, String shopperType) {
         this.items = items;
-        this.type = shopperType;
+        this.shopperType = shopperType;
     }
 
     public Body() {
@@ -21,11 +21,11 @@ public class Body {
         this.items = items;
     }
 
-    public String getType() {
-        return type;
+    public String getShopperType() {
+        return shopperType;
     }
 
-    public void setType(String type) {
-        this.type = type;
+    public void setShopperType(String shopperType) {
+        this.shopperType = shopperType;
     }
 }

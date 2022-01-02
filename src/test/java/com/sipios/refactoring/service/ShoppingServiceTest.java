@@ -44,7 +44,7 @@ class ShoppingServiceTest {
         assertThatThrownBy(() -> shoppingService.calculatePrice(
             new Body(new Item[]{new Item("TSHIRT", 1000)}, ShopperType.PREMIUM_CUSTOMER.toString()), new Date()))
             .isExactlyInstanceOf(ResponseStatusException.class)
-            .hasMessageContaining("400 BAD_REQUEST \"Price (27000.0) is too high for premium customer");
+            .hasMessageContaining("400 BAD_REQUEST \"Price (27000.0) is too high for premium customer\"");
     }
 
     @Test
